@@ -1,0 +1,47 @@
+import express from "express"
+import mongoose from "mongoose"
+import cors from "cors"
+import dotenv from "dotenv"
+import authRoutes from "./routes/auth.js"
+import userRoutes from "./routes/users.js"
+import studentRoutes from "./routes/students.js"
+import classRoutes from "./routes/classes.js"
+import attendanceRoutes from "./routes/attendance.js"
+import gradeRoutes from "./routes/grades.js"
+import assignmentRoutes from "./routes/assignments.js"
+import communicationRoutes from "./routes/communication.js"
+import feeRoutes from "./routes/fees.js"
+import courseRoutes from "./routes/courses.js"
+import { authMiddleware } from "./middleware/auth.js"
+
+dotenv.config()
+
+const app = express()
+
+// Middleware
+app.use(cors())
+app.use(express.json())
+
+// MongoDB Connection
+mongoose
+  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/sms")
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err))
+
+// Routes
+app.get("/api/status", (req, res) => res.json({ status: "ok", version: "1.2", time: new Date() }))
+app.use("/api/auth", authRoutes)
+app.use("/api/users", authMiddleware, userRoutes)
+app.use("/api/students", authMiddleware, studentRoutes)
+app.use("/api/classes", authMiddleware, classRoutes)
+app.use("/api/attendance", authMiddleware, attendanceRoutes)
+app.use("/api/grades", authMiddleware, gradeRoutes)
+app.use("/api/assignments", authMiddleware, assignmentRoutes)
+app.use("/api/communication", authMiddleware, communicationRoutes)
+app.use("/api/fees", authMiddleware, feeRoutes)
+app.use("/api/courses", authMiddleware, courseRoutes)
+
+const PORT = process.env.PORT || 5000
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
+})

@@ -1,0 +1,166 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Premium Deep Blue / Indigo Theme */
+  --background: oklch(0.99 0.01 240);
+  --foreground: oklch(0.13 0.03 260);
+
+  /* Card Surface - Slightly off-white for depth */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.13 0.03 260);
+  
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.13 0.03 260);
+
+  /* Primary Brand Color - Deep Indigo/Blue */
+  --primary: oklch(0.48 0.22 265);      /* Vibrant Indigo */
+  --primary-dark: oklch(0.35 0.20 265); /* Darker Indigo */
+  --primary-light: oklch(0.94 0.04 265); /* Very light Indigo tint */
+  --primary-foreground: oklch(0.99 0 0);
+
+  /* Secondary - Soft cool gray */
+  --secondary: oklch(0.95 0.02 240);
+  --secondary-foreground: oklch(0.30 0.05 260);
+
+  /* Semantic Colors - Refined for harmony */
+  --success: oklch(0.65 0.18 150);
+  --warning: oklch(0.75 0.18 75);
+  --error: oklch(0.60 0.22 30);
+  --info: oklch(0.55 0.20 240);
+
+  /* Text Colors */
+  --text: oklch(0.13 0.03 260);
+  --text-secondary: oklch(0.40 0.04 260);
+
+  /* Borders & Surface */
+  --border: oklch(0.92 0.01 240);
+  --surface: oklch(0.97 0.01 240);
+
+  --input: oklch(0.92 0.01 240);
+  --ring: oklch(0.48 0.22 265);
+
+  /* Chart Colors - Modern Gradient Palette */
+  --chart-1: oklch(0.48 0.22 265); /* Purple/Indigo */
+  --chart-2: oklch(0.55 0.20 240); /* Blue */
+  --chart-3: oklch(0.65 0.18 150); /* Green/Teal */
+  --chart-4: oklch(0.75 0.18 75);  /* Orange/Gold */
+  --chart-5: oklch(0.60 0.22 30);  /* Red/Pink */
+
+  --radius: 0.75rem; /* Slightly more rounded for modern look */
+
+  /* Sidebar Specifics */
+  --sidebar: oklch(0.98 0.01 240);
+  --sidebar-foreground: oklch(0.20 0.04 265);
+  --sidebar-primary: oklch(0.48 0.22 265);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.94 0.03 265);
+  --sidebar-accent-foreground: oklch(0.48 0.22 265);
+  --sidebar-border: oklch(0.90 0.02 240);
+  --sidebar-ring: oklch(0.48 0.22 265);
+}
+
+.dark {
+  /* Dark Mode - Deep Navy / Slate background */
+  --background: oklch(0.15 0.04 265); 
+  --foreground: oklch(0.98 0 0);
+
+  --card: oklch(0.20 0.04 265);
+  --card-foreground: oklch(0.98 0 0);
+  
+  --popover: oklch(0.20 0.04 265);
+  --popover-foreground: oklch(0.98 0 0);
+
+  --primary: oklch(0.60 0.20 265);
+  --primary-dark: oklch(0.45 0.20 265);
+  --primary-light: oklch(0.25 0.08 265);
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.25 0.04 265);
+  --secondary-foreground: oklch(0.90 0 0);
+
+  /* Vibrant colors for dark mode visibility */
+  --success: oklch(0.70 0.18 150);
+  --warning: oklch(0.80 0.18 75);
+  --error: oklch(0.65 0.22 30);
+  --info: oklch(0.65 0.20 240);
+
+  --text: oklch(0.98 0 0);
+  --text-secondary: oklch(0.70 0.04 260);
+
+  --border: oklch(0.25 0.04 265);
+  --surface: oklch(0.18 0.04 265);
+
+  --input: oklch(0.25 0.04 265);
+  --ring: oklch(0.60 0.20 265);
+
+  --chart-1: oklch(0.60 0.20 265);
+  --chart-2: oklch(0.55 0.20 240);
+  --chart-3: oklch(0.70 0.18 150);
+  --chart-4: oklch(0.80 0.18 75);
+  --chart-5: oklch(0.65 0.22 30);
+
+  --sidebar: oklch(0.13 0.04 260); /* Slightly darker than main bg */
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.60 0.20 265);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.25 0.04 265);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.25 0.04 265);
+  --sidebar-ring: oklch(0.60 0.20 265);
+}
+
+@theme inline {
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
