@@ -19,7 +19,7 @@ router.post("/send", async (req, res) => {
 router.get("/inbox", async (req, res) => {
   try {
     const messages = await Communication.find({ recipientId: req.user.id })
-      .populate("senderId", "firstName lastName email")
+      .populate("senderId", "firstName lastName email role")
       .sort({ createdAt: -1 })
     res.json(messages)
   } catch (error) {

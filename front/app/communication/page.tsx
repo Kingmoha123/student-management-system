@@ -186,10 +186,10 @@ export default function CommunicationPage() {
   const filteredUsers = Array.isArray(users) ? users.filter(u => {
     if (u._id === user?.id) return false;
 
-    // If student, only show their parent
+    // If student, only show their parent and teachers
     if (user?.role === 'student') {
       const parentId = typeof studentProfile?.parentId === 'object' ? studentProfile.parentId?._id : studentProfile?.parentId;
-      return u._id === parentId;
+      return u._id === parentId || u.role === 'teacher';
     }
 
     return true;
@@ -292,7 +292,7 @@ export default function CommunicationPage() {
                     {messages.filter(m => {
                       if (user?.role !== 'student' || !studentProfile) return true;
                       const parentId = typeof studentProfile?.parentId === 'object' ? studentProfile.parentId?._id : studentProfile?.parentId;
-                      return m.senderId?._id === parentId || m.senderId === parentId;
+                      return m.senderId?._id === parentId || m.senderId === parentId || m.senderId?.role === 'teacher';
                     }).map((message) => (
                       <button
                         key={message._id}
