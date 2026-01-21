@@ -4,7 +4,7 @@ import Attendance from "../models/Attendance.js"
 
 const router = express.Router()
 
-router.post("/", roleMiddleware(["teacher", "admin"]), async (req, res) => {
+router.post("/", roleMiddleware(["teacher"]), async (req, res) => {
   try {
     const { studentId, classId, date, status, remarks } = req.body
 
@@ -19,6 +19,29 @@ router.post("/", roleMiddleware(["teacher", "admin"]), async (req, res) => {
     })
 
     res.status(201).json(attendance)
+  } catch (error) {
+    res.status(500).json({ message: error.message })
+  }
+})
+
+router.post("/bulk", roleMiddleware(["teacher"]), async (req, res) => {
+  try {
+    const { items } = req.body // Array of { studentId, classId, date, status }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: "No attendance items provided" })
+    }
+
+    const operations = items.map((item) => ({
+      updateOne: {
+        filter: { studentId: item.studentId, classId: item.classId, date: new Date(item.date) },
+        update: { status: item.status },
+        upsert: true,
+      },
+    }))
+
+    await Attendance.bulkWrite(operations)
+    res.status(201).json({ message: "Attendance saved successfully" })
   } catch (error) {
     res.status(500).json({ message: error.message })
   }
@@ -85,7 +108,7 @@ router.get("/stats/student/:studentId", async (req, res) => {
   }
 })
 
-router.put("/:id", roleMiddleware(["teacher", "admin"]), async (req, res) => {
+router.put("/:id", roleMiddleware(["teacher"]), async (req, res) => {
   try {
     const attendance = await Attendance.findByIdAndUpdate(req.params.id, req.body, { new: true })
     res.json(attendance)

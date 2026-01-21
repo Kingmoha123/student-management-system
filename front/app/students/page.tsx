@@ -61,6 +61,12 @@ interface Student {
   }
   enrollmentNumber: string
   classId?: { _id: string; name: string }
+  parentId?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string
+  }
   enrollmentDate: string
   status: "enrolled" | "suspended" | "graduated"
   averageGrade: number
@@ -72,6 +78,7 @@ const studentSchema = z.object({
   enrollmentNumber: z.string().min(1, "Enrollment number is required"),
   dateOfBirth: z.string().optional(),
   classId: z.string().optional(),
+  parentId: z.string().optional(),
   status: z.enum(["enrolled", "suspended", "graduated"]),
 })
 
@@ -82,7 +89,10 @@ export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [classes, setClasses] = useState<any[]>([])
-  const [users, setUsers] = useState<any[]>([])
+  // We'll store potential student users here
+  const [studentUsers, setStudentUsers] = useState<any[]>([])
+  // We'll store potential parent users here
+  const [parentUsers, setParentUsers] = useState<any[]>([])
 
   // UI State
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -104,6 +114,7 @@ export default function StudentsPage() {
       enrollmentNumber: "",
       dateOfBirth: "",
       classId: "",
+      parentId: "",
       status: "enrolled",
     },
   })
@@ -162,12 +173,14 @@ export default function StudentsPage() {
       })
       if (!response.ok) throw new Error("Failed to fetch users")
       const data = await response.json()
-      // Filter users who are students and seemingly not yet enrolled as students (optional logic)
+
       if (Array.isArray(data)) {
-        setUsers(data.filter((u: any) => u.role === "student"))
+        setStudentUsers(data.filter((u: any) => u.role === "student"))
+        setParentUsers(data.filter((u: any) => u.role === "parent"))
       } else {
         console.error("Fetched users is not an array:", data)
-        setUsers([])
+        setStudentUsers([])
+        setParentUsers([])
       }
     } catch (error) {
       console.error("Failed to fetch users:", error)
@@ -176,7 +189,11 @@ export default function StudentsPage() {
 
   const handleAddStudent = async (data: StudentFormValues) => {
     try {
-      const payload = { ...data, classId: data.classId === "none" ? "" : data.classId }
+      const payload = {
+        ...data,
+        classId: data.classId === "none" ? "" : data.classId,
+        parentId: data.parentId === "none" ? "" : data.parentId
+      }
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students`, {
         method: "POST",
         headers: {
@@ -205,7 +222,11 @@ export default function StudentsPage() {
     if (!studentToEdit) return
 
     try {
-      const payload = { ...data, classId: data.classId === "none" ? "" : data.classId }
+      const payload = {
+        ...data,
+        classId: data.classId === "none" ? "" : data.classId,
+        parentId: data.parentId === "none" ? "" : data.parentId
+      }
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students/${studentToEdit._id}`, {
         method: "PUT",
         headers: {
@@ -238,6 +259,7 @@ export default function StudentsPage() {
       enrollmentNumber: student.enrollmentNumber,
       status: student.status,
       classId: student.classId?._id || "none",
+      parentId: student.parentId?._id || "none",
     })
     setIsEditDialogOpen(true)
   }
@@ -347,7 +369,7 @@ export default function StudentsPage() {
                               <SelectValue placeholder="Choose a user profile" />
                             </SelectTrigger>
                             <SelectContent>
-                              {users.map((u) => (
+                              {studentUsers.map((u) => (
                                 <SelectItem key={u._id} value={u._id}>
                                   <div className="flex items-center gap-2">
                                     <Avatar className="h-6 w-6">
@@ -386,6 +408,29 @@ export default function StudentsPage() {
                               </SelectContent>
                             </Select>
                           </div>
+                        </div>
+
+                        {/* Parent Selection */}
+                        <div className="space-y-2">
+                          <Label>Assign Parent</Label>
+                          <Select
+                            onValueChange={(val) => form.setValue("parentId", val)}
+                            defaultValue={form.getValues("parentId")}
+                          >
+                            <SelectTrigger className="bg-muted/50 h-11">
+                              <SelectValue placeholder="Select Parent (Optional)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No Parent Assigned</SelectItem>
+                              {parentUsers.map((p) => (
+                                <SelectItem key={p._id} value={p._id}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{p.firstName} {p.lastName} (Parent)</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -507,6 +552,7 @@ export default function StudentsPage() {
                     <TableHead className="py-4">Student</TableHead>
                     <TableHead>Student ID</TableHead>
                     <TableHead>Current Class</TableHead>
+                    <TableHead>Parent</TableHead>
                     <TableHead>Avg Perf.</TableHead>
                     <TableHead>Status</TableHead>
                     {(user?.role === "admin" || user?.role === "teacher") && <TableHead className="text-right">Actions</TableHead>}
@@ -516,12 +562,12 @@ export default function StudentsPage() {
                   {loading ? (
                     Array(5).fill(0).map((_, i) => (
                       <TableRow key={i} className="animate-pulse">
-                        <TableCell colSpan={6} className="h-16 bg-muted/5" />
+                        <TableCell colSpan={7} className="h-16 bg-muted/5" />
                       </TableRow>
                     ))
                   ) : paginatedStudents.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
+                      <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
                         <div className="flex flex-col items-center gap-2 opacity-40">
                           <Users className="h-10 w-10" />
                           <p>No students found for this filter</p>
@@ -561,6 +607,15 @@ export default function StudentsPage() {
                           )}
                         </TableCell>
                         <TableCell>
+                          {student.parentId ? (
+                            <div className="text-sm">
+                              {student.parentId.firstName} {student.parentId.lastName}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">No Parent</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <div className="flex items-center gap-2">
                             <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
                               <div
@@ -597,14 +652,16 @@ export default function StudentsPage() {
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </Link>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-blue-500 hover:bg-blue-500/10"
-                                onClick={() => openEditDialog(student)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
+                              {user?.role === "admin" && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-blue-500 hover:bg-blue-500/10"
+                                  onClick={() => openEditDialog(student)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
                               {user?.role === "admin" && (
                                 <Button
                                   variant="ghost"
@@ -719,6 +776,30 @@ export default function StudentsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Parent Edit Selection */}
+              <div className="space-y-2">
+                <Label>Assign Parent</Label>
+                <Select
+                  onValueChange={(val) => form.setValue("parentId", val)}
+                  defaultValue={form.getValues("parentId")}
+                  value={form.watch("parentId")}
+                >
+                  <SelectTrigger className="bg-muted/50 h-11">
+                    <SelectValue placeholder="Select Parent (Optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Parent Assigned</SelectItem>
+                    {parentUsers.map((p) => (
+                      <SelectItem key={p._id} value={p._id}>
+                        <div className="flex items-center gap-2">
+                          <span>{p.firstName} {p.lastName} (Parent)</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

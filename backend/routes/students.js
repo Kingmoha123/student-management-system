@@ -27,7 +27,7 @@ router.get("/me", roleMiddleware(["student"]), async (req, res) => {
   }
 })
 
-router.post("/", roleMiddleware(["admin", "teacher"]), async (req, res) => {
+router.post("/", roleMiddleware(["admin"]), async (req, res) => {
   try {
     const student = new Student(req.body)
     await student.save()
@@ -40,7 +40,11 @@ router.post("/", roleMiddleware(["admin", "teacher"]), async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
-    const students = await Student.find().populate("userId classId parentId").populate({
+    const query = {};
+    if (req.query.parentId) {
+      query.parentId = req.query.parentId;
+    }
+    const students = await Student.find(query).populate("userId classId parentId").populate({
       path: "userId",
       select: "firstName lastName email",
     })
@@ -62,7 +66,7 @@ router.get("/:id", async (req, res) => {
   }
 })
 
-router.put("/:id", roleMiddleware(["admin", "teacher"]), async (req, res) => {
+router.put("/:id", roleMiddleware(["admin"]), async (req, res) => {
   try {
     const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate(
       "userId classId parentId",

@@ -25,6 +25,15 @@ const assignmentSchema = new mongoose.Schema({
     type: Number,
     default: 100,
   },
+  questions: [
+    {
+      questionText: { type: String, required: true },
+      type: { type: String, enum: ['short-answer', 'multiple-choice'], default: 'short-answer' },
+      options: [String], // for multiple choice
+      correctAnswer: String,
+      points: Number
+    }
+  ],
   createdAt: {
     type: Date,
     default: Date.now,

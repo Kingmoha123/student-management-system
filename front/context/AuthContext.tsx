@@ -47,11 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email, password }),
     })
 
-    if (!response.ok) {
-      throw new Error("Login failed")
-    }
-
     const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || "Login failed")
+    }
     setToken(data.token)
     setUser(data.user)
     localStorage.setItem("token", data.token)
@@ -65,11 +65,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify(userData),
     })
 
-    if (!response.ok) {
-      throw new Error("Registration failed")
-    }
-
     const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || "Registration failed")
+    }
     setToken(data.token)
     setUser(data.user)
     localStorage.setItem("token", data.token)

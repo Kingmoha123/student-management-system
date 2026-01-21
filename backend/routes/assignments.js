@@ -5,7 +5,7 @@ import AssignmentSubmission from "../models/AssignmentSubmission.js"
 
 const router = express.Router()
 
-router.post("/", roleMiddleware(["teacher", "admin"]), async (req, res) => {
+router.post("/", roleMiddleware(["teacher"]), async (req, res) => {
   try {
     const assignment = new Assignment(req.body)
     await assignment.save()
@@ -42,11 +42,21 @@ router.get("/class/:classId", async (req, res) => {
 
 router.post("/submit/:assignmentId", roleMiddleware(["student"]), async (req, res) => {
   try {
+    const existingSubmission = await AssignmentSubmission.findOne({
+      assignmentId: req.params.assignmentId,
+      studentId: req.body.studentId
+    })
+
+    if (existingSubmission) {
+      return res.status(400).json({ message: "You have already submitted this assignment." })
+    }
+
     const submission = new AssignmentSubmission({
       assignmentId: req.params.assignmentId,
       studentId: req.body.studentId,
       submissionFile: req.body.submissionFile,
       submissionText: req.body.submissionText,
+      answers: req.body.answers,
     })
     await submission.save()
     res.status(201).json(submission)
@@ -55,9 +65,16 @@ router.post("/submit/:assignmentId", roleMiddleware(["student"]), async (req, re
   }
 })
 
-router.get("/submissions/:assignmentId", roleMiddleware(["teacher", "admin"]), async (req, res) => {
+router.get("/submissions/:assignmentId", roleMiddleware(["teacher", "admin", "student"]), async (req, res) => {
   try {
-    const submissions = await AssignmentSubmission.find({ assignmentId: req.params.assignmentId }).populate(
+    let query = { assignmentId: req.params.assignmentId }
+
+    // If student, only show their own valid submission
+    if (req.user.role === 'student') {
+      query.studentId = req.user.id
+    }
+
+    const submissions = await AssignmentSubmission.find(query).populate(
       "studentId",
       "firstName lastName",
     )

@@ -8,11 +8,17 @@ const submissionSchema = new mongoose.Schema({
   },
   studentId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Student",
+    ref: "User",
     required: true,
   },
   submissionFile: String,
   submissionText: String,
+  answers: [
+    {
+      questionText: String,
+      answer: String
+    }
+  ],
   submittedDate: {
     type: Date,
     default: Date.now,

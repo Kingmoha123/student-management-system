@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress"
 export default function DashboardPage() {
   const { user, token } = useAuth()
 
-  // Dashboard Stats State (Admin)
+  // Dashboard Stats State (General)
   const [stats, setStats] = useState({
     students: 0,
     classes: 0,
@@ -24,11 +24,20 @@ export default function DashboardPage() {
   })
   const [activities, setActivities] = useState<any[]>([])
 
-  // Student State
+  // Role Specific Data
   const [studentData, setStudentData] = useState<any>({
     class: null,
     attendancePercentage: 0,
     courses: []
+  })
+
+  const [teacherData, setTeacherData] = useState<any>({
+    myClasses: [],
+    myStudentsCount: 0
+  })
+
+  const [parentData, setParentData] = useState<any>({
+    children: []
   })
 
   // Loading State
@@ -38,11 +47,16 @@ export default function DashboardPage() {
   const [enrollmentData, setEnrollmentData] = useState<any[]>([])
 
   useEffect(() => {
-    if (token) {
-      if (user?.role === "student") {
+    if (token && user) {
+      setLoading(true);
+      if (user.role === "student") {
         fetchStudentDashboardData()
+      } else if (user.role === "teacher") {
+        fetchTeacherDashboardData()
+      } else if (user.role === "parent") {
+        fetchParentDashboardData()
       } else {
-        fetchDashboardData()
+        fetchAdminDashboardData() // Previously fetchDashboardData
       }
     }
   }, [token, user])
@@ -90,7 +104,94 @@ export default function DashboardPage() {
     }
   }
 
-  const fetchDashboardData = async () => {
+  const fetchTeacherDashboardData = async () => {
+    try {
+      const headers = { Authorization: `Bearer ${token}` }
+
+      // Fetch Classes taught by this teacher
+      const classesRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/classes?teacherId=${user?.id}`, { headers });
+      const myClasses = classesRes.ok ? await classesRes.json() : [];
+
+      // Fetch Assignments created by this teacher (assuming assignments have creatorId or linked via class)
+      // For now, let's just fetch all assignments and filter client side if API doesn't support it, or just generic stats
+      const assignmentsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/assignments`, { headers });
+      const allAssignments = assignmentsRes.ok ? await assignmentsRes.json() : [];
+      // Filter assignments for my classes
+      const myClassIds = myClasses.map((c: any) => c._id);
+      const myAssignments = allAssignments.filter((a: any) => myClassIds.includes(a.classId?._id || a.classId));
+
+      // Fetch messages
+      const messagesRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communication/inbox`, { headers });
+      const myMessages = messagesRes.ok ? await messagesRes.json() : [];
+
+      setStats({
+        students: myClasses.reduce((acc: number, curr: any) => acc + (curr.studentCount || 0), 0),
+        classes: myClasses.length,
+        teachers: 0,
+        courses: 0,
+        assignments: myAssignments.length,
+        messages: myMessages.filter((m: any) => !m.isRead).length
+      });
+
+      setTeacherData({
+        myClasses: myClasses,
+        myStudentsCount: myClasses.reduce((acc: number, curr: any) => acc + (curr.studentCount || 0), 0)
+      });
+
+    } catch (error) {
+      console.error("Teacher dashboard error", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const fetchParentDashboardData = async () => {
+    try {
+      const headers = { Authorization: `Bearer ${token}` }
+
+      // Fetch children
+      const studentsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students?parentId=${user?.id}`, { headers });
+      const myChildren = studentsRes.ok ? await studentsRes.json() : [];
+
+      // Fetch stats for each child
+      const childrenWithStats = await Promise.all(myChildren.map(async (child: any) => {
+        // Get attendance
+        const attRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/attendance/stats/student/${child._id}`, { headers });
+        const attData = attRes.ok ? await attRes.json() : { percentage: 0 };
+
+        return {
+          ...child,
+          attendancePercentage: attData.percentage
+        };
+      }));
+
+      setParentData({
+        children: childrenWithStats
+      });
+
+      // Messages for parent
+      const messagesRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communication/inbox`, { headers });
+      const myMessages = messagesRes.ok ? await messagesRes.json() : [];
+
+      setStats({
+        students: myChildren.length,
+        classes: 0,
+        teachers: 0,
+        courses: 0,
+        assignments: 0,
+        messages: myMessages.filter((m: any) => !m.isRead).length
+      })
+
+    } catch (error) {
+      console.error("Parent dashboard error", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+
+  const fetchAdminDashboardData = async () => {
+    // This is the original fetchDashboardData logic
     try {
       const headers = { Authorization: `Bearer ${token}` }
 
@@ -233,36 +334,42 @@ export default function DashboardPage() {
       value: stats.students.toString(),
       icon: Users,
       color: "text-blue-600 bg-blue-100",
+      show: true
     },
     {
       title: "Active Classes",
       value: stats.classes.toString(),
       icon: BookOpen,
       color: "text-emerald-600 bg-emerald-100",
+      show: user?.role !== 'parent' // Parents don't manage classes usually
     },
     {
       title: "Total Teachers",
       value: (stats.teachers || 0).toString(),
       icon: GraduationCap,
       color: "text-pink-600 bg-pink-100",
+      show: user?.role === 'admin'
     },
     {
       title: "Total Courses",
       value: (stats.courses || 0).toString(),
       icon: BookOpen,
       color: "text-orange-600 bg-orange-100",
+      show: user?.role === 'admin'
     },
     {
       title: "Assignments", // Pending or Total
       value: stats.assignments.toString(),
       icon: ClipboardList,
       color: "text-amber-600 bg-amber-100",
+      show: user?.role !== 'parent'
     },
     {
       title: "Unread Messages",
       value: stats.messages.toString(),
       icon: MessageSquare,
       color: "text-purple-600 bg-purple-100",
+      show: true
     },
   ]
 
@@ -384,7 +491,65 @@ export default function DashboardPage() {
     )
   }
 
-  // --- ADMIN / TEACHER VIEW ---
+  // --- PARENT VIEW ---
+  if (user?.role === 'parent') {
+    return (
+      <ProtectedRoute>
+        <div className="flex h-screen bg-background text-foreground">
+          <Sidebar />
+          <main className="flex-1 ml-64 overflow-y-auto">
+            <div className="bg-primary/5 px-8 py-12 animate-in fade-in slide-in-from-top-4 duration-700">
+              <h1 className="text-4xl font-bold mb-2 text-primary tracking-tight">Welcome, {user?.firstName}!</h1>
+              <p className="text-muted-foreground text-lg">Here is the overview for your children.</p>
+            </div>
+
+            <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+              {/* Children Overview */}
+              <h2 className="text-2xl font-bold tracking-tight">My Children</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {parentData.children.length > 0 ? (
+                  parentData.children.map((child: any, idx: number) => (
+                    <Card key={idx} className="border-none shadow-lg bg-card/60 backdrop-blur-sm hover:shadow-xl transition-all">
+                      <CardHeader>
+                        <CardTitle>{child.userId.firstName} {child.userId.lastName}</CardTitle>
+                        <CardDescription>{child.enrollmentNumber}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg">
+                            <span className="text-sm font-medium">Class</span>
+                            <span className="text-sm text-foreground">{child.classId?.name || "Unassigned"}</span>
+                          </div>
+                          <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg">
+                            <span className="text-sm font-medium">Attendance</span>
+                            <span className={`text-sm font-bold ${child.attendancePercentage > 75 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                              {child.attendancePercentage}%
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg">
+                            <span className="text-sm font-medium">Status</span>
+                            <span className="text-sm capitalize">{child.status}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-10 bg-muted/20 rounded-xl">
+                    <p className="text-muted-foreground">No children linked to your account yet.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </main>
+        </div>
+      </ProtectedRoute>
+    )
+  }
+
+  // --- TEACHER / ADMIN VIEW ---
+  // If teacher, show their specific classes but use similar layout to admin
+
   return (
     <ProtectedRoute>
       <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -406,7 +571,7 @@ export default function DashboardPage() {
           <div className="p-8 space-y-8 -mt-8 relative z-20">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-              {statCards.map((stat, index) => {
+              {statCards.filter(card => card.show !== false).map((stat, index) => {
                 const Icon = stat.icon
                 return (
                   <Card key={index} className="hover:shadow-2xl hover:-translate-y-1 hover:bg-card hover:ring-1 hover:ring-primary/20 transition-all duration-300 border-none shadow-lg bg-card/80 backdrop-blur overflow-hidden group cursor-pointer">
@@ -429,131 +594,161 @@ export default function DashboardPage() {
               })}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-7 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-              {/* Main Chart */}
-              <Card className="col-span-1 lg:col-span-4 shadow-xl border-none bg-card/60 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                    School Overview
-                  </CardTitle>
-                  <CardDescription>Enrollment trends over the last 6 months</CardDescription>
-                </CardHeader>
-                <CardContent className="pl-0">
-                  <div className="h-[350px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={enrollmentData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.1} />
-                          </linearGradient>
-                        </defs>
-                        <XAxis
-                          dataKey="name"
-                          stroke="currentColor"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          className="text-muted-foreground"
-                          dy={10}
-                        />
-                        <YAxis
-                          stroke="currentColor"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          tickFormatter={(value) => `${value}`}
-                          className="text-muted-foreground"
-                          dx={-10}
-                        />
-                        <Tooltip
-                          cursor={{ fill: 'var(--muted)', opacity: 0.1 }}
-                          contentStyle={{
-                            borderRadius: '12px',
-                            border: 'none',
-                            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-                            backgroundColor: 'var(--card)',
-                            color: 'var(--card-foreground)'
-                          }}
-                        />
-                        <Bar
-                          dataKey="total"
-                          fill="url(#colorTotal)"
-                          radius={[6, 6, 0, 0]}
-                          className="hover:opacity-80 transition-opacity cursor-pointer"
-                          animationDuration={1500}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+            {user?.role === 'admin' ? (
+              // ADMIN ONLY CHARTS
+              <div className="grid grid-cols-1 lg:grid-cols-7 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+                {/* Main Chart */}
+                <Card className="col-span-1 lg:col-span-4 shadow-xl border-none bg-card/60 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-primary" />
+                      School Overview
+                    </CardTitle>
+                    <CardDescription>Enrollment trends over the last 6 months</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pl-0">
+                    <div className="h-[350px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={enrollmentData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.8} />
+                              <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.1} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis
+                            dataKey="name"
+                            stroke="currentColor"
+                            fontSize={12}
+                            tickLine={false}
+                            axisLine={false}
+                            className="text-muted-foreground"
+                            dy={10}
+                          />
+                          <YAxis
+                            stroke="currentColor"
+                            fontSize={12}
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(value) => `${value}`}
+                            className="text-muted-foreground"
+                            dx={-10}
+                          />
+                          <Tooltip
+                            cursor={{ fill: 'var(--muted)', opacity: 0.1 }}
+                            contentStyle={{
+                              borderRadius: '12px',
+                              border: 'none',
+                              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+                              backgroundColor: 'var(--card)',
+                              color: 'var(--card-foreground)'
+                            }}
+                          />
+                          <Bar
+                            dataKey="total"
+                            fill="url(#colorTotal)"
+                            radius={[6, 6, 0, 0]}
+                            className="hover:opacity-80 transition-opacity cursor-pointer"
+                            animationDuration={1500}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {/* Quick Actions / Recent Activity */}
-              <Card className="col-span-1 lg:col-span-3 shadow-xl border-none bg-card/60 backdrop-blur-sm flex flex-col">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-amber-500" />
-                    Recent Activity
-                  </CardTitle>
-                  <CardDescription>Latest updates across the system</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-auto custom-scrollbar pr-2 max-h-[400px]">
-                  <div className="space-y-6">
-                    {activities.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center h-full">
-                        <div className="p-4 bg-muted/50 rounded-full mb-3">
-                          <AlertCircle className="w-8 h-8 text-muted-foreground/50" />
-                        </div>
-                        <p className="text-muted-foreground text-sm font-medium">No recent activity found.</p>
-                      </div>
-                    ) : (
-                      activities.map((activity, i) => {
-                        const Icon = activity.icon
-                        const timeAgo = () => {
-                          const diff = new Date().getTime() - new Date(activity.time).getTime()
-                          const minutes = Math.floor(diff / 60000)
-                          const hours = Math.floor(minutes / 60)
-                          const days = Math.floor(hours / 24)
-
-                          if (days > 0) return `${days}d ago`
-                          if (hours > 0) return `${hours}h ago`
-                          if (minutes > 0) return `${minutes}m ago`
-                          return 'Just now'
-                        }
-
-                        return (
-                          <div key={activity.id} className="flex gap-4 group">
-                            <div className="relative flex flex-col items-center">
-                              <span className={`relative flex h-9 w-9 items-center justify-center rounded-full border-2 border-background shadow-xs z-10 ${activity.ping ? 'bg-sky-100 ring-4 ring-sky-50 dark:bg-sky-900/30 dark:ring-sky-900/10' : 'bg-muted'}`}>
-                                {activity.ping && (
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-20"></span>
-                                )}
-                                <Icon className={`h-4 w-4 ${activity.iconColor || 'text-muted-foreground'}`} />
-                              </span>
-                              {i !== activities.length - 1 && (
-                                <div className="w-[2px] h-full bg-border/50 absolute top-9"></div>
-                              )}
-                            </div>
-
-                            <div className="flex-1 pb-1 pt-0.5">
-                              <p className="text-sm font-semibold leading-none group-hover:text-primary transition-colors">{activity.title}</p>
-                              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                                {activity.description}
-                              </p>
-                            </div>
-                            <div className="text-xs font-mono text-muted-foreground/70 whitespace-nowrap self-start mt-1 bg-muted/30 px-2 py-0.5 rounded">
-                              {timeAgo()}
-                            </div>
+                {/* Quick Actions / Recent Activity */}
+                <Card className="col-span-1 lg:col-span-3 shadow-xl border-none bg-card/60 backdrop-blur-sm flex flex-col">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-amber-500" />
+                      Recent Activity
+                    </CardTitle>
+                    <CardDescription>Latest updates across the system</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-1 overflow-auto custom-scrollbar pr-2 max-h-[400px]">
+                    <div className="space-y-6">
+                      {activities.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-center h-full">
+                          <div className="p-4 bg-muted/50 rounded-full mb-3">
+                            <AlertCircle className="w-8 h-8 text-muted-foreground/50" />
                           </div>
-                        )
-                      })
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                          <p className="text-muted-foreground text-sm font-medium">No recent activity found.</p>
+                        </div>
+                      ) : (
+                        activities.map((activity, i) => {
+                          const Icon = activity.icon
+                          const timeAgo = () => {
+                            const diff = new Date().getTime() - new Date(activity.time).getTime()
+                            const minutes = Math.floor(diff / 60000)
+                            const hours = Math.floor(minutes / 60)
+                            const days = Math.floor(hours / 24)
+
+                            if (days > 0) return `${days}d ago`
+                            if (hours > 0) return `${hours}h ago`
+                            if (minutes > 0) return `${minutes}m ago`
+                            return 'Just now'
+                          }
+
+                          return (
+                            <div key={activity.id} className="flex gap-4 group">
+                              <div className="relative flex flex-col items-center">
+                                <span className={`relative flex h-9 w-9 items-center justify-center rounded-full border-2 border-background shadow-xs z-10 ${activity.ping ? 'bg-sky-100 ring-4 ring-sky-50 dark:bg-sky-900/30 dark:ring-sky-900/10' : 'bg-muted'}`}>
+                                  {activity.ping && (
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-20"></span>
+                                  )}
+                                  <Icon className={`h-4 w-4 ${activity.iconColor || 'text-muted-foreground'}`} />
+                                </span>
+                                {i !== activities.length - 1 && (
+                                  <div className="w-[2px] h-full bg-border/50 absolute top-9"></div>
+                                )}
+                              </div>
+
+                              <div className="flex-1 pb-1 pt-0.5">
+                                <p className="text-sm font-semibold leading-none group-hover:text-primary transition-colors">{activity.title}</p>
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                  {activity.description}
+                                </p>
+                              </div>
+                              <div className="text-xs font-mono text-muted-foreground/70 whitespace-nowrap self-start mt-1 bg-muted/30 px-2 py-0.5 rounded">
+                                {timeAgo()}
+                              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              // TEACHER VIEW (My Classes)
+              <div className="mt-8">
+                <h2 className="text-2xl font-bold tracking-tight mb-4">My Classes</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {teacherData.myClasses.length > 0 ? (
+                    teacherData.myClasses.map((cls: any, idx: number) => (
+                      <Card key={idx} className="border-none shadow-lg bg-card/60 backdrop-blur-sm hover:shadow-xl transition-all hover:border-primary/50 border hover:-translate-y-1">
+                        <CardHeader>
+                          <CardTitle>{cls.name}</CardTitle>
+                          <CardDescription>{cls.academicYear} - {cls.section}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center justify-between text-sm text-muted-foreground">
+                            <span>{cls.studentCount || 0} / {cls.maxCapacity} Students</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-10 bg-muted/20 rounded-xl">
+                      <p className="text-muted-foreground">You are not assigned to any classes yet.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
           </div>
         </main>
       </div>

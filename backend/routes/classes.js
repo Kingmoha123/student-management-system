@@ -1,6 +1,7 @@
 import express from "express"
 import { roleMiddleware } from "../middleware/auth.js"
 import Class from "../models/Class.js"
+import Student from "../models/Student.js"
 
 const router = express.Router()
 
@@ -17,8 +18,19 @@ router.post("/", roleMiddleware(["admin"]), async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
-    const classes = await Class.find().populate("teacherId", "firstName lastName email")
-    res.json(classes)
+    const query = {};
+    if (req.query.teacherId) {
+      query.teacherId = req.query.teacherId;
+    }
+    const classes = await Class.find(query).populate("teacherId", "firstName lastName email").lean()
+
+    // Add student count to each class
+    const classesWithCounts = await Promise.all(classes.map(async (cls) => {
+      const studentCount = await Student.countDocuments({ classId: cls._id });
+      return { ...cls, studentCount };
+    }));
+
+    res.json(classesWithCounts)
   } catch (error) {
     res.status(500).json({ message: error.message })
   }
