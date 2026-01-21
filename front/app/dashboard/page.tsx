@@ -9,10 +9,12 @@ import { Users, BookOpen, ClipboardList, MessageSquare, TrendingUp, Clock, Alert
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 import { Progress } from "@/components/ui/progress"
 
 export default function DashboardPage() {
   const { user, token } = useAuth()
+  const router = useRouter()
 
   // Dashboard Stats State (General)
   const [stats, setStats] = useState({
@@ -350,42 +352,48 @@ export default function DashboardPage() {
       value: stats.students.toString(),
       icon: Users,
       color: "text-blue-600 bg-blue-100",
-      show: true
+      show: true,
+      href: "/students"
     },
     {
       title: "Active Classes",
       value: stats.classes.toString(),
       icon: BookOpen,
       color: "text-emerald-600 bg-emerald-100",
-      show: user?.role !== 'parent' // Parents don't manage classes usually
+      show: user?.role !== 'parent',
+      href: "/classes"
     },
     {
       title: "Total Teachers",
       value: (stats.teachers || 0).toString(),
       icon: GraduationCap,
       color: "text-pink-600 bg-pink-100",
-      show: user?.role === 'admin'
+      show: user?.role === 'admin',
+      href: "/users"
     },
     {
       title: "Total Courses",
       value: (stats.courses || 0).toString(),
       icon: BookOpen,
       color: "text-orange-600 bg-orange-100",
-      show: user?.role === 'admin'
+      show: user?.role === 'admin',
+      href: "/courses"
     },
     {
-      title: "Assignments", // Pending or Total
+      title: "Assignments",
       value: stats.assignments.toString(),
       icon: ClipboardList,
       color: "text-amber-600 bg-amber-100",
-      show: user?.role !== 'parent'
+      show: user?.role !== 'parent',
+      href: "/assignments"
     },
     {
       title: "Unread Messages",
       value: stats.messages.toString(),
       icon: MessageSquare,
       color: "text-purple-600 bg-purple-100",
-      show: true
+      show: true,
+      href: "/communication"
     },
   ]
 
@@ -599,7 +607,11 @@ export default function DashboardPage() {
               {statCards.filter(card => card.show !== false).map((stat, index) => {
                 const Icon = stat.icon
                 return (
-                  <Card key={index} className="hover:shadow-2xl hover:-translate-y-1 hover:bg-card hover:ring-1 hover:ring-primary/20 transition-all duration-300 border-none shadow-lg bg-card/80 backdrop-blur overflow-hidden group cursor-pointer">
+                  <Card
+                    key={index}
+                    onClick={() => stat.href && router.push(stat.href)}
+                    className="hover:shadow-2xl hover:-translate-y-1 hover:bg-card hover:ring-1 hover:ring-primary/20 transition-all duration-300 border-none shadow-lg bg-card/80 backdrop-blur overflow-hidden group cursor-pointer"
+                  >
                     <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500`}>
                       <Icon className={`w-24 h-24 ${stat.color.replace('bg-', 'text-').split(' ')[0]}`} />
                     </div>
