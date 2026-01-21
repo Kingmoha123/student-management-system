@@ -4,10 +4,14 @@ import { body, validationResult } from "express-validator"
 import User from "../models/User.js"
 import Student from "../models/Student.js"
 
+import { authMiddleware, roleMiddleware } from "../middleware/auth.js"
+
 const router = express.Router()
 
 router.post(
   "/register",
+  authMiddleware,
+  roleMiddleware(["admin"]),
   [
     body("email").isEmail(),
     body("password").isLength({ min: 6 }),
