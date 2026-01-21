@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { Sidebar } from "@/components/Sidebar"
+import { MobileSidebar } from "@/components/MobileSidebar"
 import { useAuth } from "@/context/AuthContext"
 import { Users, BookOpen, ClipboardList, MessageSquare, TrendingUp, Clock, AlertCircle, Calendar, GraduationCap } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -378,7 +379,7 @@ export default function DashboardPage() {
       <ProtectedRoute>
         <div className="flex h-screen bg-background text-foreground">
           <Sidebar />
-          <main className="flex-1 ml-64 p-8">
+          <main className="flex-1 md:ml-64 p-8">
             <div className="animate-pulse space-y-4">
               <div className="h-8 bg-muted w-1/3 rounded"></div>
               <div className="grid grid-cols-3 gap-6">
@@ -398,7 +399,10 @@ export default function DashboardPage() {
       <ProtectedRoute>
         <div className="flex h-screen bg-background text-foreground">
           <Sidebar />
-          <main className="flex-1 ml-64 overflow-y-auto">
+          <main className="flex-1 md:ml-64 overflow-y-auto relative">
+            <div className="md:hidden absolute top-4 left-4 z-50">
+              <MobileSidebar />
+            </div>
             <div className="bg-primary/5 px-8 py-12 animate-in fade-in slide-in-from-top-4 duration-700">
               <h1 className="text-4xl font-bold mb-2 text-primary tracking-tight">Welcome back, {user?.firstName}!</h1>
               <p className="text-muted-foreground text-lg">Here is your academic overview for <span className="font-semibold text-foreground">{studentData.class?.name}</span>.</p>
@@ -497,7 +501,10 @@ export default function DashboardPage() {
       <ProtectedRoute>
         <div className="flex h-screen bg-background text-foreground">
           <Sidebar />
-          <main className="flex-1 ml-64 overflow-y-auto">
+          <main className="flex-1 md:ml-64 overflow-y-auto relative">
+            <div className="md:hidden absolute top-4 left-4 z-50">
+              <MobileSidebar />
+            </div>
             <div className="bg-primary/5 px-8 py-12 animate-in fade-in slide-in-from-top-4 duration-700">
               <h1 className="text-4xl font-bold mb-2 text-primary tracking-tight">Welcome, {user?.firstName}!</h1>
               <p className="text-muted-foreground text-lg">Here is the overview for your children.</p>
@@ -554,7 +561,10 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <div className="flex h-screen bg-background text-foreground overflow-hidden">
         <Sidebar />
-        <main className="flex-1 ml-64 overflow-y-auto custom-scrollbar">
+        <main className="flex-1 md:ml-64 overflow-y-auto custom-scrollbar relative">
+          <div className="md:hidden absolute top-4 left-4 z-50 text-white">
+            <MobileSidebar />
+          </div>
           {/* Header Section */}
           <div className="bg-gradient-to-r from-primary to-blue-600 px-8 py-16 text-primary-foreground animate-in fade-in slide-in-from-top-4 duration-700 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>

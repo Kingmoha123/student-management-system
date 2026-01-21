@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils"
 
 import { ThemeToggle } from "@/components/ThemeToggle"
 
-export function Sidebar() {
+export function Sidebar({ className, isMobile }: { className?: string, isMobile?: boolean }) {
   const { user, logout } = useAuth()
   const pathname = usePathname()
 
@@ -41,7 +41,12 @@ export function Sidebar() {
   ]
 
   return (
-    <aside className="w-64 bg-sidebar/95 backdrop-blur-md text-sidebar-foreground h-screen flex flex-col fixed left-0 top-0 border-r border-sidebar-border shadow-2xl z-50 transition-all duration-300">
+    <aside className={cn(
+      "bg-sidebar/95 backdrop-blur-md text-sidebar-foreground flex flex-col transition-all duration-300",
+      !isMobile && "w-64 h-screen fixed left-0 top-0 border-r border-sidebar-border shadow-2xl z-50 hidden md:flex",
+      isMobile && "w-full h-full",
+      className
+    )}>
       <div className="p-6 border-b border-sidebar-border/50">
         <div className="flex items-center gap-3">
           <div className="relative group">
