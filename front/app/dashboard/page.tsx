@@ -148,7 +148,8 @@ export default function DashboardPage() {
         teachers: 0,
         courses: 0,
         assignments: myAssignments.length,
-        messages: myMessages.filter((m: any) => !m.isRead).length
+        messages: myMessages.filter((m: any) => !m.isRead).length,
+        fees: 0
       });
 
       setTeacherData({
@@ -197,7 +198,8 @@ export default function DashboardPage() {
         teachers: 0,
         courses: 0,
         assignments: 0,
-        messages: myMessages.filter((m: any) => !m.isRead).length
+        messages: myMessages.filter((m: any) => !m.isRead).length,
+        fees: 0
       })
 
     } catch (error) {
@@ -406,7 +408,7 @@ export default function DashboardPage() {
     },
     {
       title: "Student Fees",
-      value: `$${stats.fees.toLocaleString()}`,
+      value: `$${(stats.fees || 0).toLocaleString()}`,
       icon: CreditCard,
       color: "text-teal-600 bg-teal-100",
       show: user?.role === 'admin' || user?.role === 'accountant',
