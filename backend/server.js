@@ -19,10 +19,7 @@ dotenv.config()
 const app = express()
 
 // Middleware
-app.use(cors({
-  origin: ["https://student-management-system-front.vercel.app", "http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],
-  credentials: true
-}))
+app.use(cors())
 app.use(express.json())
 
 // MongoDB Connection
